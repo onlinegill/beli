@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { test } from "node:test";
+import { assertApiDeploymentConfig, readConfig, type Config } from "../apps/server/src/config.ts";
 import {
-  loadServerSecrets,
   MIGRATED_SERVER_SECRETS,
+  loadServerSecrets,
 } from "../apps/server/src/config/server-secrets.ts";
-import { assertApiDeploymentConfig, type Config, readConfig } from "../apps/server/src/config.ts";
 import type { Store } from "../apps/server/src/db.ts";
 import { encryptSecret } from "../packages/integrations/src/vault.ts";
 

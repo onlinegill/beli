@@ -8,11 +8,8 @@ test("Associative memory synthesizer (Hermes-Agent style)", async (t) => {
   await t.test("extracts facts, preferences, and configurations from conversation turns", () => {
     const messages = [
       { role: "user", content: "Hi! I prefer dark mode and concise summaries in my reports." },
-      {
-        role: "assistant",
-        content: "Understood, I will keep reports concise with dark mode formatting.",
-      },
-      { role: "user", content: "Our production server is at 10.10.0.20 running Ubuntu." },
+      { role: "assistant", content: "Understood, I will keep reports concise with dark mode formatting." },
+      { role: "user", content: "Our production server is at 192.0.2.20 running Ubuntu." },
       { role: "user", content: "My role is engineering lead for the OpenMuse project." },
     ];
 
@@ -25,7 +22,7 @@ test("Associative memory synthesizer (Hermes-Agent style)", async (t) => {
 
     const entity = facts.find((f) => f.category === "entity");
     assert.ok(entity);
-    assert.match(entity.text, /server is at 10.10.0.20/i);
+    assert.match(entity.text, /server is at 192.0.2.20/i);
 
     const userFact = facts.find((f) => f.category === "fact");
     assert.ok(userFact);
@@ -37,7 +34,7 @@ test("Associative memory synthesizer (Hermes-Agent style)", async (t) => {
       {
         id: "f1",
         category: "entity" as const,
-        text: "Configuration/Entity: server is at 10.10.0.20",
+        text: "Configuration/Entity: server is at 192.0.2.20",
         tags: ["server", "10", "10", "0", "20"],
         importance: 5,
         timestamp: new Date().toISOString(),
@@ -52,8 +49,8 @@ test("Associative memory synthesizer (Hermes-Agent style)", async (t) => {
       },
     ];
 
-    const scoreServer = synthesizer.scoreAssociative(facts[0], "deploy to server 10.10.0.20");
-    const scorePref = synthesizer.scoreAssociative(facts[1], "deploy to server 10.10.0.20");
+    const scoreServer = synthesizer.scoreAssociative(facts[0], "deploy to server 192.0.2.20");
+    const scorePref = synthesizer.scoreAssociative(facts[1], "deploy to server 192.0.2.20");
 
     assert.ok(scoreServer > 0);
     assert.equal(scorePref, 0); // No overlap with server query

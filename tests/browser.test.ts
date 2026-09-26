@@ -102,7 +102,7 @@ test("server reopens the same worker UUID regardless of stale local session stat
   assert.equal(calls.length, 4);
 });
 
-test('dashboard typing action "type" is translated to the worker\'s "text" action', async (t) => {
+test("dashboard typing action \"type\" is translated to the worker's \"text\" action", async (t) => {
   const calls: { path: string; body: Record<string, unknown> }[] = [];
   const updated = { ...savedSession, title: "Typed page", url: "https://example.org/" };
   const { db, service } = await browserFixture(t, (path, body) => {
@@ -111,11 +111,11 @@ test('dashboard typing action "type" is translated to the worker\'s "text" actio
   });
   await db.put("owner", "browsers", savedSession);
   // This is exactly what the dashboard agent's browser_input tool sends.
-  const result = await service.input("owner", sessionId, { type: "type", text: "Work User" });
+  const result = await service.input("owner", sessionId, { type: "type", text: "Test User" });
   assert.equal(result.title, updated.title);
   assert.deepEqual(calls.at(-1), {
     path: `/sessions/${sessionId}/input`,
-    body: { type: "text", text: "Work User" },
+    body: { type: "text", text: "Test User" },
   });
 });
 

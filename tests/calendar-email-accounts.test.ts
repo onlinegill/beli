@@ -6,14 +6,17 @@ import { join } from "node:path";
 import test, { after, before } from "node:test";
 import { Auth } from "../apps/server/src/auth.ts";
 import type { Config } from "../apps/server/src/config.ts";
-import { type EmailFactories, EmailService } from "../apps/server/src/connectors/email/service.ts";
+import {
+  type EmailFactories,
+  EmailService,
+} from "../apps/server/src/connectors/email/service.ts";
 import { createStore, type Store } from "../apps/server/src/db.ts";
-import { buildAgentTools } from "../apps/server/src/engine/calendar-mail-tools.ts";
 import { Files } from "../apps/server/src/files.ts";
 import { GoogleAuth } from "../apps/server/src/google-auth.ts";
 import { WorkspaceService } from "../apps/server/src/workspace.ts";
-import type { CalendarEvent } from "../packages/domain/src/index.ts";
 import { eventDraftSchema } from "../packages/domain/src/index.ts";
+import { buildAgentTools } from "../apps/server/src/engine/calendar-mail-tools.ts";
+import type { CalendarEvent } from "../packages/domain/src/index.ts";
 
 // Obviously fake credential for the fake account; never a real secret.
 const FAKE_PASSWORD = "fake-test-password-not-a-secret";

@@ -11,34 +11,12 @@ test("heartbeat and conditional automation rules", async (t) => {
     mode: "sample",
     profile: { name: "Test User", email: "user@example.com" },
     mail: [
-      {
-        id: "m1",
-        sender: "boss@corp.com",
-        subject: "Urgent: Project Budget Review",
-        unread: true,
-        date: new Date(nowMs).toISOString(),
-      },
-      {
-        id: "m2",
-        sender: "newsletter@weekly.com",
-        subject: "Your Weekly Digest",
-        unread: false,
-        date: new Date(nowMs).toISOString(),
-      },
+      { id: "m1", sender: "boss@corp.com", subject: "Urgent: Project Budget Review", unread: true, date: new Date(nowMs).toISOString() },
+      { id: "m2", sender: "newsletter@weekly.com", subject: "Your Weekly Digest", unread: false, date: new Date(nowMs).toISOString() },
     ],
     events: [
-      {
-        id: "e1",
-        title: "Strategy Sync",
-        start: new Date(nowMs + 20 * 60 * 1000).toISOString(),
-        end: new Date(nowMs + 50 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "e2",
-        title: "Tomorrow Standup",
-        start: new Date(nowMs + 24 * 60 * 60 * 1000).toISOString(),
-        end: new Date(nowMs + 25 * 60 * 60 * 1000).toISOString(),
-      },
+      { id: "e1", title: "Strategy Sync", start: new Date(nowMs + 20 * 60 * 1000).toISOString(), end: new Date(nowMs + 50 * 60 * 1000).toISOString() },
+      { id: "e2", title: "Tomorrow Standup", start: new Date(nowMs + 24 * 60 * 60 * 1000).toISOString(), end: new Date(nowMs + 25 * 60 * 60 * 1000).toISOString() },
     ],
     actions: [],
     files: [],
@@ -98,10 +76,7 @@ test("heartbeat and conditional automation rules", async (t) => {
     assert.equal(res.rulesTriggered, 1);
     const ruleAlert = res.alerts.find((a) => a.kind === "automation");
     assert.ok(ruleAlert);
-    assert.match(
-      ruleAlert.body,
-      /Found critical email: Urgent: Project Budget Review from boss@corp.com/,
-    );
+    assert.match(ruleAlert.body, /Found critical email: Urgent: Project Budget Review from boss@corp.com/);
   });
 
   await t.test("automation tools lifecycle", async () => {
@@ -114,16 +89,13 @@ test("heartbeat and conditional automation rules", async (t) => {
     assert.ok(listTool);
     assert.ok(deleteTool);
 
-    const created = await (createTool as any).execute(
-      {},
-      {
-        name: "Upcoming Meeting Reminder",
-        field: "upcoming_meeting_minutes",
-        operator: "less_than",
-        value: 25,
-        messageTemplate: "Prepare notes for {title} in {minutes}m!",
-      },
-    );
+    const created = await (createTool as any).execute({}, {
+      name: "Upcoming Meeting Reminder",
+      field: "upcoming_meeting_minutes",
+      operator: "less_than",
+      value: 25,
+      messageTemplate: "Prepare notes for {title} in {minutes}m!",
+    });
     assert.equal(created.ok, true);
 
     const listed = await (listTool as any).execute({}, {});

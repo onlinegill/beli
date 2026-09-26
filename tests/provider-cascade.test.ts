@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { type ProviderCandidate, ProviderCascade } from "../apps/server/src/engine/cascade.ts";
+import { ProviderCascade, type ProviderCandidate } from "../apps/server/src/engine/cascade.ts";
 
 test("Provider fallback cascade", async (t) => {
   const candidates: ProviderCandidate[] = [

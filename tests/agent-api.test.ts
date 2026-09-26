@@ -312,7 +312,7 @@ test("sample monitor saves its baseline and deduplicates notifications for repea
   assert.equal(beforeDelete.length, 2);
   const deleteRes = await read<{ ok: boolean }>(`/notifications/${beforeDelete[0].id}/delete`, {});
   assert.equal(deleteRes.ok, true);
-  const remaining = await notifications();
+  let remaining = await notifications();
   assert.equal(remaining.length, 1);
   assert.equal(remaining[0].id, beforeDelete[1].id);
 
@@ -325,13 +325,7 @@ test("sample monitor saves its baseline and deduplicates notifications for repea
   assert.equal((await notifications()).length, 0);
 
   // Add a notification and test clear all
-  await server.agent.notify(
-    "local-user",
-    "To Clear",
-    "Will be cleared",
-    monitor.taskId,
-    "clear-notice",
-  );
+  await server.agent.notify("local-user", "To Clear", "Will be cleared", monitor.taskId, "clear-notice");
   assert.equal((await notifications()).length, 1);
   const clearRes = await read<{ ok: boolean; count: number }>("/notifications/clear", {});
   assert.equal(clearRes.ok, true);
@@ -339,7 +333,9 @@ test("sample monitor saves its baseline and deduplicates notifications for repea
   assert.equal((await notifications()).length, 0);
 
   // Other user's notification should remain intact
-  assert.ok(await db.get<AgentNotification>("other-user", "notifications", privateNotification.id));
+  assert.ok(
+    await db.get<AgentNotification>("other-user", "notifications", privateNotification.id),
+  );
 });
 
 test("live mode rejects sample sources and hides the fixture mutation endpoint", async () => {

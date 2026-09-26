@@ -358,21 +358,30 @@ test("mailbox schemas require the right identifier per backend", () => {
 // Work signature
 // ---------------------------------------------------------------------------
 
-test("work email is signed Work User, never Owner", () => {
-  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nWork User");
-  // An existing Work User sign-off is kept as-is.
-  assert.equal(applyWorkSignature("Hello\n\nWork User", "work@example.com"), "Hello\n\nWork User");
-  // A trailing Owner sign-off is corrected, not duplicated.
-  assert.equal(applyWorkSignature("Hello\n\nOwner", "work@example.com"), "Hello\n\nWork User");
-  assert.equal(applyWorkSignature("Hello\n\nOwner User", "work@example.com"), "Hello\n\nWork User");
+test("work email is signed Test User, never Testy", () => {
+  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nTest User");
+  // An existing Test User sign-off is kept as-is.
+  assert.equal(
+    applyWorkSignature("Hello\n\nTest User", "work@example.com"),
+    "Hello\n\nTest User",
+  );
+  // A trailing Testy sign-off is corrected, not duplicated.
+  assert.equal(
+    applyWorkSignature("Hello\n\nTesty", "work@example.com"),
+    "Hello\n\nTest User",
+  );
+  assert.equal(
+    applyWorkSignature("Hello\n\nTesty Gill", "work@example.com"),
+    "Hello\n\nTest User",
+  );
   // Mentions elsewhere in the body are untouched.
   assert.equal(
-    applyWorkSignature("Owner will join us\n\nRegards", "work@example.com"),
-    "Owner will join us\n\nRegards\n\nWork User",
+    applyWorkSignature("Testy will join us\n\nRegards", "work@example.com"),
+    "Testy will join us\n\nRegards\n\nTest User",
   );
   // Non-work accounts are untouched.
-  assert.equal(applyWorkSignature("Hello", "personal@example.com"), "Hello");
-  assert.equal(applyWorkSignature("Hello\n\nOwner", "personal@example.com"), "Hello\n\nOwner");
+  assert.equal(applyWorkSignature("Hello", "user@example.com"), "Hello");
+  assert.equal(applyWorkSignature("Hello\n\nTesty", "user@example.com"), "Hello\n\nTesty");
 });
 
 // ---------------------------------------------------------------------------
@@ -479,7 +488,7 @@ test("EmailService.send rejects a CR/LF subject before touching the transport", 
   assert.equal(sent.length, 0);
 });
 
-test("EmailService.send signs the work account Work User", async () => {
+test("EmailService.send signs the work account Test User", async () => {
   sent.length = 0;
   const email = new EmailService(db, config, fakeFactories);
   const account = await createImapAccount(email, "work@example.com");
@@ -491,7 +500,7 @@ test("EmailService.send signs the work account Work User", async () => {
     body: "Just checking in",
   });
   assert.equal(sent.length, 1);
-  assert.ok(sent[0].text.endsWith("\n\nWork User"));
+  assert.ok(sent[0].text.endsWith("\n\nTest User"));
 });
 
 // ---------------------------------------------------------------------------
@@ -568,10 +577,10 @@ test("email.send handler sends through the exact IMAP account with the work sign
   })) as { sent: boolean; account: string };
   assert.equal(result.sent, true);
   assert.equal(result.account, account.id);
-  // The fake transport recorded exactly one send, signed Work User.
+  // The fake transport recorded exactly one send, signed Test User.
   assert.equal(sent.length, 1);
   assert.equal(sent[0].subject, "Hi");
-  assert.ok(sent[0].text.endsWith("\n\nWork User"));
+  assert.ok(sent[0].text.endsWith("\n\nTest User"));
 });
 
 test("resolveCalendarAttendees fails closed on unreadable events", async () => {

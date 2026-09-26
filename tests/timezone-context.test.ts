@@ -27,10 +27,9 @@ test("buildChatPrompt includes the timezone section", async () => {
   assert.ok(prompt.includes("America/Chicago"), "owner timezone in prompt");
   assert.ok(plan.included.includes("timezone"), "timezone in plan");
   // Section order: identity (100) > timezone (90) > memories (80)
-  const order = ["identity", "timezone", "memories"].map((id) => prompt.indexOf(`## ${id}\n`));
-  assert.ok(
-    order.every((i) => i >= 0),
-    "all sections present",
+  const order = ["identity", "timezone", "memories"].map((id) =>
+    prompt.indexOf(`## ${id}\n`),
   );
+  assert.ok(order.every((i) => i >= 0), "all sections present");
   assert.ok(order[0] < order[1] && order[1] < order[2], "priority order kept");
 });

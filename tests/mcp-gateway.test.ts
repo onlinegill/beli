@@ -78,7 +78,7 @@ test("MCP Gateway client and manager", async (t) => {
         inputSchema: { type: "object" },
       },
     ];
-    client.callTool = async (_name, args) => ({
+    client.callTool = async (name, args) => ({
       content: [{ type: "text", text: `PR created with args: ${JSON.stringify(args)}` }],
     });
 
@@ -89,9 +89,7 @@ test("MCP Gateway client and manager", async (t) => {
     assert.equal(discovered.length, 1);
     assert.equal(discovered[0].name, "mcp_github_create_pull_request");
 
-    const execResult = await manager.executeTool("mcp_github_create_pull_request", {
-      title: "Fix bug",
-    });
+    const execResult = await manager.executeTool("mcp_github_create_pull_request", { title: "Fix bug" });
     assert.match(execResult.content[0].text, /Fix bug/);
 
     manager.removeServer("github");

@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test, { after, before } from "node:test";
-import { agentConfigured } from "../apps/server/src/agent.ts";
 import type { Config } from "../apps/server/src/config.ts";
-import { providerKeyCreateSchema } from "../apps/server/src/connectors/provider-keys/schemas.ts";
-import {
-  type ModelsFetcher,
-  ProviderKeyService,
-} from "../apps/server/src/connectors/provider-keys/service.ts";
 import { createStore, type Store } from "../apps/server/src/db.ts";
 import {
   applyProviderSelection,
@@ -16,7 +10,16 @@ import {
   PROVIDER_CATALOG,
   PROVIDER_SELECTION_ID,
   PROVIDER_SELECTION_KIND,
+  type ProviderId,
 } from "../apps/server/src/engine/providers.ts";
+import { agentConfigured } from "../apps/server/src/agent.ts";
+import {
+  type ModelsFetcher,
+  ProviderKeyService,
+} from "../apps/server/src/connectors/provider-keys/service.ts";
+import {
+  providerKeyCreateSchema,
+} from "../apps/server/src/connectors/provider-keys/schemas.ts";
 
 // Fake keys only — never real secrets in tests.
 const FAKE_DEEPSEEK_KEY = "sk-test-deepseek-0001abcd";
@@ -86,16 +89,7 @@ const service = () => new ProviderKeyService(db, config, fakeFetcher);
 
 test("catalog covers the expected providers", () => {
   const ids = PROVIDER_CATALOG.map((entry) => entry.id);
-  for (const id of [
-    "openai",
-    "anthropic",
-    "google",
-    "deepseek",
-    "xai",
-    "mistral",
-    "custom",
-    "local",
-  ])
+  for (const id of ["openai", "anthropic", "google", "deepseek", "xai", "mistral", "custom", "local"])
     assert.ok(ids.includes(id as never), `catalog missing ${id}`);
   const local = PROVIDER_CATALOG.find((entry) => entry.id === "local");
   assert.equal(local?.defaultBaseUrl, "http://127.0.0.1:11434/v1");
@@ -193,7 +187,7 @@ test("test endpoint calls {baseUrl}/models with the key, never generating", asyn
   assert.equal(result.ok, true);
   assert.equal(fetchCalls.length, 1);
   assert.equal(fetchCalls[0].url, "https://api.deepseek.com/v1/models");
-  assert.equal(fetchCalls[0].headers.Authorization, `Bearer ${FAKE_DEEPSEEK_KEY}`);
+  assert.equal(fetchCalls[0].headers.Authorization, "Bearer " + FAKE_DEEPSEEK_KEY);
   await svc.delete(OWNER, created.id);
 });
 
@@ -210,13 +204,13 @@ test("test endpoint sanitises untrusted provider error bodies", async () => {
     ok: false,
     status: 401,
     // Oversized + control characters: must come back truncated and cleaned.
-    body: `{"error":"bad key"}\n\r\t${"x".repeat(5000)}`,
+    body: '{"error":"bad key"}\n\r\t' + "x".repeat(5000),
   };
   const result = await svc.test(OWNER, created.id);
   assert.equal(result.ok, false);
   assert.ok(result.detail, "detail expected");
   assert.ok(result.detail.length <= 420, `detail too long: ${result.detail.length}`);
-  assert.ok(!/\p{Cc}/u.test(result.detail), "control chars leaked into detail");
+  assert.ok(!/[\x00-\x1F]/.test(result.detail), "control chars leaked into detail");
   assert.ok(!result.detail.includes(FAKE_KEY), "key leaked into detail");
   await svc.delete(OWNER, created.id);
 });
@@ -385,7 +379,10 @@ test("google probe uses x-goog-api-key against the native models endpoint", asyn
   const result = await svc.test(OWNER, created.id);
   assert.equal(result.ok, true);
   assert.equal(fetchCalls.length, 1);
-  assert.equal(fetchCalls[0].url, "https://generativelanguage.googleapis.com/v1beta/models");
+  assert.equal(
+    fetchCalls[0].url,
+    "https://generativelanguage.googleapis.com/v1beta/models",
+  );
   assert.equal(fetchCalls[0].headers["x-goog-api-key"], FAKE_KEY);
   assert.ok(!fetchCalls[0].headers.Authorization, "google must not use Bearer");
   await svc.delete(OWNER, created.id);
@@ -405,7 +402,7 @@ test("google probe falls back to Bearer when the base URL is overridden", async 
   const result = await svc.test(OWNER, created.id);
   assert.equal(result.ok, true);
   assert.equal(fetchCalls[0].url, "https://proxy.example.com/v1/models");
-  assert.equal(fetchCalls[0].headers.Authorization, `Bearer ${FAKE_KEY}`);
+  assert.equal(fetchCalls[0].headers.Authorization, "Bearer " + FAKE_KEY);
   await svc.delete(OWNER, created.id);
 });
 
@@ -516,7 +513,7 @@ test("metadata responses never carry the secret or its envelope", async () => {
   assert.ok(!seen.includes(FAKE_DEEPSEEK_KEY), "secret in list output");
   assert.ok(!seen.includes("gcm") && !seen.includes("iv"), "envelope in list output");
   const one = listed.find((row) => row.id === created.id);
-  assert.equal(one?.keyHint, `\u2026${FAKE_DEEPSEEK_KEY.slice(-4)}`);
+  assert.equal(one?.keyHint, "\u2026" + FAKE_DEEPSEEK_KEY.slice(-4));
   await svc.delete(OWNER, created.id);
 });
 
@@ -570,3 +567,4 @@ test("local selection stores no key: OPENAI_API_KEY gets the inert placeholder",
   assert.equal(process.env.OPENAI_API_KEY, "none");
   await svc.delete(OWNER, created.id);
 });
+

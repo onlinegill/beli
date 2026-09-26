@@ -90,7 +90,10 @@ test("createUser stores a scrypt hash, never the plaintext", async () => {
 
 test("createUser rejects duplicates and bad roles", async () => {
   await assert.rejects(createUser(db, "alice", "another-pass", "user"), /already taken/);
-  await assert.rejects(createUser(db, "bob", "another-pass", "superuser" as never), /Role must be/);
+  await assert.rejects(
+    createUser(db, "bob", "another-pass", "superuser" as never),
+    /Role must be/,
+  );
 });
 
 test("ensureAdminSeeded creates admin once, then is a no-op", async () => {
@@ -255,7 +258,10 @@ test("API: /api/users is admin-only and enforces the last-admin rule", async () 
     assert.equal(otherPw.status, 403);
 
     // Admin cannot demote/delete/disable the last admin.
-    for (const body of [{ role: "user" }, { disabled: true }]) {
+    for (const body of [
+      { role: "user" },
+      { disabled: true },
+    ]) {
       const r = await app.request("/api/users/admin", {
         method: "PATCH",
         headers: adminH2,

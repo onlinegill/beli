@@ -11,10 +11,7 @@ import { createApp } from "../apps/server/src/app.ts";
 import { Auth } from "../apps/server/src/auth.ts";
 import type { Config } from "../apps/server/src/config.ts";
 import { emailRoutes } from "../apps/server/src/connectors/email/routes.ts";
-import {
-  emailAccountCreateSchema,
-  emailMessageQuerySchema,
-} from "../apps/server/src/connectors/email/schemas.ts";
+import { emailAccountCreateSchema, emailMessageQuerySchema } from "../apps/server/src/connectors/email/schemas.ts";
 import {
   type EmailFactories,
   EmailService,
@@ -296,7 +293,9 @@ test("search matches messages beyond the most recent 50", async () => {
       pageMessages: async (_folder, query, page, pageSize) => {
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
         const matched = many.filter((item) =>
-          words.every((word) => `${item.subject} ${item.text}`.toLowerCase().includes(word)),
+          words.every((word) =>
+            `${item.subject} ${item.text}`.toLowerCase().includes(word),
+          ),
         );
         const sorted = [...matched].sort((a, b) => b.uid - a.uid);
         const start = (page - 1) * pageSize;
@@ -391,11 +390,17 @@ test("messages route returns a paginated page object and never the password", as
   assert.equal(bad.status, 422);
 });
 
-test("send signs work-account mail as Work User and leaves other accounts alone", async () => {
-  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nWork User");
-  assert.equal(applyWorkSignature("Hello", "Work@Example.com"), "Hello\n\nWork User");
-  assert.equal(applyWorkSignature("Hello", "personal@example.com"), "Hello");
-  assert.equal(applyWorkSignature("Hello\n\nWork User", "work@example.com"), "Hello\n\nWork User");
+test("send signs work-account mail as Test User and leaves other accounts alone", async () => {
+  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nTest User");
+  assert.equal(
+    applyWorkSignature("Hello", "WORK@example.com"),
+    "Hello\n\nTest User",
+  );
+  assert.equal(applyWorkSignature("Hello", "user@example.com"), "Hello");
+  assert.equal(
+    applyWorkSignature("Hello\n\nTest User", "work@example.com"),
+    "Hello\n\nTest User",
+  );
 
   const email = new EmailService(db, config, fakeFactories);
   const work = await email.createAccount("owner-10", {
@@ -410,12 +415,12 @@ test("send signs work-account mail as Work User and leaves other accounts alone"
     subject: "Hi",
     body: "Hello there",
   });
-  assert.ok(sent.at(-1)?.text.endsWith("\n\nWork User"));
+  assert.ok(sent.at(-1)?.text.endsWith("\n\nTest User"));
 
   const personal = await email.createAccount("owner-11", {
     ...accountInput,
     label: "Personal",
-    emailAddress: "personal@example.com",
+    emailAddress: "user@example.com",
   });
   await email.send("owner-11", personal.id, {
     to: ["sam@example.com"],
@@ -740,7 +745,8 @@ function stubModel(
   const seen: { url: string; body: any }[] = [];
   globalThis.fetch = (async (url: any, init: any) => {
     seen.push({ url: String(url), body: JSON.parse(String(init?.body ?? "{}")) });
-    if (opts?.ok === false) return { ok: false, status: 500, json: async () => ({}) };
+    if (opts?.ok === false)
+      return { ok: false, status: 500, json: async () => ({}) };
     return {
       ok: true,
       status: 200,
@@ -792,8 +798,7 @@ test("compose AI helpers draft replies and fix grammar via the model", async (t)
   assert.ok(seen[0].url.endsWith("/chat/completions"), "hits the chat completions endpoint");
   const userMsg = (seen[0].body.messages as { role: string; content: string }[]).find(
     (m) => m.role === "user",
-  )?.content;
-  assert.ok(userMsg, "the model receives a user message");
+  )!.content;
   assert.ok(userMsg.includes("Quarterly report"), "the original subject reaches the model");
   assert.ok(userMsg.includes("boss@example.com"), "the original sender reaches the model");
 

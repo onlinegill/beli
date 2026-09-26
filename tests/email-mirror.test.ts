@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test, { after, before } from "node:test";
 import type { Config } from "../apps/server/src/config.ts";
-import { MirrorStore } from "../apps/server/src/connectors/email/mirror.ts";
 import {
   type EmailFactories,
   EmailService,
@@ -10,6 +9,7 @@ import {
   type ImapSyncConnection,
   type ResolvedEmailAccount,
 } from "../apps/server/src/connectors/email/service.ts";
+import { MirrorStore } from "../apps/server/src/connectors/email/mirror.ts";
 import { syncFolderMirror } from "../apps/server/src/connectors/email/sync.ts";
 import { createStore, type Store } from "../apps/server/src/db.ts";
 
@@ -91,7 +91,8 @@ function fakeSyncConnection(mailboxes: Record<string, FakeMailbox>): ImapSyncCon
           }
           return out;
         },
-        listUids: async () => [...mailbox.messages.keys()].sort((a, b) => a - b),
+        listUids: async () =>
+          [...mailbox.messages.keys()].sort((a, b) => a - b),
         fetchFlags: async (startUid, endUid) => {
           const rows: { uid: number; flags: string[] }[] = [];
           for (const [uid, stored] of mailbox.messages) {
@@ -280,8 +281,12 @@ test("full-text search finds subject and body terms locally", async () => {
 });
 
 test("multi-match search returns newest messages first", async () => {
-  inbox.add(msg("Laptop accessories", "Order laptop bags too.", "2026-09-23T08:00:00.000Z"));
-  inbox.add(msg("Old laptop quote", "An old quote for laptops.", "2026-09-19T08:00:00.000Z"));
+  inbox.add(
+    msg("Laptop accessories", "Order laptop bags too.", "2026-09-23T08:00:00.000Z"),
+  );
+  inbox.add(
+    msg("Old laptop quote", "An old quote for laptops.", "2026-09-19T08:00:00.000Z"),
+  );
 
   const email = makeService();
   await email.syncMirrors("owner-1", accountId);
@@ -301,9 +306,7 @@ test("multi-match search returns newest messages first", async () => {
 
 test("uidvalidity change triggers a full resync", async () => {
   inbox.reset(99);
-  inbox.add(
-    msg("Brand new mailbox", "Everything after a server rebuild.", "2026-09-23T10:00:00.000Z"),
-  );
+  inbox.add(msg("Brand new mailbox", "Everything after a server rebuild.", "2026-09-23T10:00:00.000Z"));
 
   const email = makeService();
   const reports = await email.syncMirrors("owner-1", accountId);

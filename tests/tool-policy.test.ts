@@ -475,10 +475,7 @@ test("browser_input is tiered: ordinary interactions allowed, sensitive ones gat
     );
   }
   // Fail closed when the page URL cannot be resolved.
-  assert.equal(
-    (await evaluateToolPolicy(ctx("browser_input", page(undefined)))).kind,
-    "requireApproval",
-  );
+  assert.equal((await evaluateToolPolicy(ctx("browser_input", page(undefined)))).kind, "requireApproval");
   // Sensitive pages: checkout, login, messaging.
   for (const url of [
     "https://shop.example.com/checkout",
@@ -541,7 +538,10 @@ test("chat_clear_history: the user's own explicit clear instruction authorizes i
     (await evaluateToolPolicy(ctx("chat_clear_history", { userClearHistoryWords: true }))).kind,
     "allow",
   );
-  assert.equal((await evaluateToolPolicy(ctx("chat_clear_history"))).kind, "requireApproval");
+  assert.equal(
+    (await evaluateToolPolicy(ctx("chat_clear_history"))).kind,
+    "requireApproval",
+  );
 });
 
 test("userSaidClearHistory matches explicit clear instructions, not lookalikes", () => {
