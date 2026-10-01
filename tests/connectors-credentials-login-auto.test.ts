@@ -25,10 +25,10 @@ async function setup(t: TestContext) {
     if (path.endsWith("/fill")) {
       fills.push({ path, body });
       return {
-        data: { ...makeSession("https://example.com/studio/"), filled: true, submitted: true },
+        data: { ...makeSession("https://loksanjh.com/studio/"), filled: true, submitted: true },
       };
     }
-    return { data: makeSession("https://example.com/studio/") };
+    return { data: makeSession("https://loksanjh.com/studio/") };
   });
   const { db, config } = fixture;
   config.encryptionKey = randomBytes(32).toString("base64");
@@ -61,18 +61,18 @@ test("loginAuto fills the single matching credential with no label needed", asyn
   const { credentials, fills, saveCredential, openOn } = await setup(t);
   await saveCredential({
     label: "Lok Sanjh",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "admin",
     password: "top-secret-pw",
   });
-  await openOn("https://example.com/studio/");
+  await openOn("https://loksanjh.com/studio/");
 
   const result = await credentials.loginAuto(owner, sessionId);
   assert.ok(result.ok);
   assert.equal(result.label, "Lok Sanjh");
-  assert.equal(result.hostname, "example.com");
+  assert.equal(result.hostname, "loksanjh.com");
   assert.equal(fills.length, 1);
-  assert.equal(fills[0].body.expectedDomain, "example.com");
+  assert.equal(fills[0].body.expectedDomain, "loksanjh.com");
   assert.equal(fills[0].body.password, "top-secret-pw");
 });
 
@@ -96,21 +96,21 @@ test("loginAuto returns a choice when several logins match, and fills nothing", 
   const { credentials, fills, saveCredential, openOn } = await setup(t);
   await saveCredential({
     label: "Lok Sanjh admin",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "admin",
     password: "pw-one",
   });
   await saveCredential({
     label: "Lok Sanjh editor",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "editor@example.com",
     password: "pw-two",
   });
-  await openOn("https://example.com/studio/");
+  await openOn("https://loksanjh.com/studio/");
 
   const result = await credentials.loginAuto(owner, sessionId);
   assert.ok(!result.ok && result.needsChoice);
-  assert.equal(result.hostname, "example.com");
+  assert.equal(result.hostname, "loksanjh.com");
   assert.equal(result.options.length, 2);
   assert.deepEqual(result.options.map((o) => o.label).sort(), [
     "Lok Sanjh admin",
@@ -166,11 +166,11 @@ test("POST /api/credentials/login-auto: ok, choice, and no-match", async (t) => 
   const { app, headers, fills, saveCredential, openOn } = await setup(t);
   await saveCredential({
     label: "Lok Sanjh",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "admin",
     password: "pw",
   });
-  await openOn("https://example.com/studio/");
+  await openOn("https://loksanjh.com/studio/");
 
   const ok = await app.request("/api/credentials/login-auto", {
     method: "POST",
@@ -180,12 +180,12 @@ test("POST /api/credentials/login-auto: ok, choice, and no-match", async (t) => 
   assert.equal(ok.status, 200);
   const receipt = await ok.json();
   assert.equal(receipt.ok, true);
-  assert.equal(receipt.hostname, "example.com");
+  assert.equal(receipt.hostname, "loksanjh.com");
   assert.equal(fills.length, 1);
 
   await saveCredential({
     label: "Lok Sanjh second",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "second",
     password: "pw2",
   });
@@ -214,11 +214,11 @@ test("chat tool browser_login: label is optional, auto-match fills, choice asks"
   const { credentials, fills, saveCredential, openOn } = await setup(t);
   await saveCredential({
     label: "Lok Sanjh",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "admin",
     password: "pw",
   });
-  await openOn("https://example.com/studio/");
+  await openOn("https://loksanjh.com/studio/");
 
   const [tool] = credentialChatTools(credentials, owner);
   const execute = (tool as unknown as { execute: (args: unknown) => Promise<unknown> }).execute;
@@ -226,13 +226,13 @@ test("chat tool browser_login: label is optional, auto-match fills, choice asks"
   // No label → auto-match fills the single saved login.
   const filled = (await execute({ sessionId })) as { ok: boolean; site: string };
   assert.equal(filled.ok, true);
-  assert.equal(filled.site, "example.com");
+  assert.equal(filled.site, "loksanjh.com");
   assert.equal(fills.length, 1);
 
   // A second login for the same domain → the tool asks which one.
   await saveCredential({
     label: "Lok Sanjh backup",
-    domain: "example.com",
+    domain: "loksanjh.com",
     username: "backup",
     password: "pw2",
   });

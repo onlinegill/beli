@@ -20,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
+import { PendingApprovals } from "./approval-card";
 import { ArtifactCard } from "./agent-ui";
 import { useAgentWorkspace } from "./agent-workspace";
 import { BackgroundUpdates } from "./background-updates";
@@ -35,6 +36,7 @@ import {
   emptyChatButtons,
 } from "./empty-chat";
 import { MailToolCard } from "./mail-tool-card";
+import { AssistantMarkdown } from "./chat-markdown";
 import { flashMascot, setMascotSource, useActivityMascot } from "./mascot-state";
 import { ensureShortcutsLoaded, getShortcutsSnapshot, subscribeShortcuts } from "./shortcuts";
 import { FileThreadCard, TaskThreadCard } from "./thread-artifacts";
@@ -513,15 +515,16 @@ export function ChatScreen({
                       borderColor: colors.line,
                     }}
                   >
-                    <Text
-                      selectable
-                      style={[
-                        s.text,
-                        { fontSize: 15, lineHeight: 23, color: user ? "#FFFFFF" : colors.text },
-                      ]}
-                    >
-                      {text}
-                    </Text>
+                    {user ? (
+                      <Text
+                        selectable
+                        style={[s.text, { fontSize: 15, lineHeight: 23, color: "#FFFFFF" }]}
+                      >
+                        {text}
+                      </Text>
+                    ) : (
+                      <AssistantMarkdown text={text} />
+                    )}
                   </View>
                 )}
                 <BrowserRunContext
@@ -627,7 +630,7 @@ export function ChatScreen({
           </View>
         )}
         <ErrorNotice error={error} />
-        {error && (
+        {!!error && (
           <Button
             style={{ alignSelf: "flex-start" }}
             icon={RotateCcw}
@@ -658,6 +661,11 @@ export function ChatScreen({
           Latest messages
         </Button>
       )}
+      <PendingApprovals
+        api={api}
+        threadId={threadId}
+        active={loaded && isReady && (busy || agent.isRunning)}
+      />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ErrorNotice error={saveError} />
         {!!saveError && (

@@ -354,6 +354,197 @@ function consumePendingApproval(ctx: ToolCallContext): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// In-chat approval cards. When a chat tool call needs owner approval, the
+// call is HELD server-side (exact tool name + arguments pinned by digest)
+// and the dashboard renders an Approve/Deny card. Approving replays the held
+// call with its original arguments — the model never re-issues it, so the
+// "approved the wrong variant" drift that the words-based path suffers from
+// cannot happen. Deny/expiry returns a plain { error } to the model.
+// ---------------------------------------------------------------------------
+
+/** Outcome of waiting on an in-chat approval card. */
+export type ApprovalDecision = "approved" | "denied" | "expired";
+
+export interface HeldApproval {
+  id: string;
+  toolName: string;
+  /** Human-readable, secret-redacted one-liner for the approval card. */
+  summary: string;
+  owner: string;
+  threadId: string;
+  /** sha256(canonicalize({ toolName, args })) pinned when the call was held. */
+  digest: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+interface HeldApprovalState extends HeldApproval {
+  settle: (decision: ApprovalDecision) => void;
+}
+
+const heldApprovals = new Map<string, HeldApprovalState>();
+/** Matches the pending-approval words path: 10 minutes to decide. */
+export const HELD_APPROVAL_TTL_MS = 10 * 60 * 1000;
+
+function heldDigest(toolName: string, args: unknown, owner: string): string {
+  // Same shape as pendingDigest: binding is excluded so the record is stable
+  // for the thread, not the turn that presented the call.
+  return hashToolCall({ toolName, args, owner, binding: "" });
+}
+
+function liveHeld(): HeldApprovalState[] {
+  const now = Date.now();
+  const live: HeldApprovalState[] = [];
+  for (const [id, record] of heldApprovals) {
+    if (record.expiresAt <= now) {
+      heldApprovals.delete(id);
+      continue;
+    }
+    live.push(record);
+  }
+  return live;
+}
+
+/**
+ * Hold a chat tool call for in-chat approval. Resolves when the owner taps
+ * Approve/Deny on the card, or "expired" after the TTL / on abort. A second
+ * identical call while one is held reuses the same card instead of stacking.
+ */
+export function awaitChatApproval(input: {
+  toolName: string;
+  args: unknown;
+  owner: string;
+  threadId: string;
+  signal?: AbortSignal;
+}): Promise<ApprovalDecision> {
+  const digest = heldDigest(input.toolName, input.args, input.owner);
+  const existing = liveHeld().find(
+    (record) =>
+      record.owner === input.owner &&
+      record.threadId === input.threadId &&
+      record.digest === digest,
+  );
+  const attachAbort = (record: HeldApprovalState): void => {
+    if (!input.signal) return;
+    if (input.signal.aborted) record.settle("expired");
+    else
+      input.signal.addEventListener("abort", () => record.settle("expired"), {
+        once: true,
+      });
+  };
+  if (existing) {
+    const shared = new Promise<ApprovalDecision>((resolve) => {
+      const prior = existing.settle;
+      existing.settle = (decision) => {
+        prior(decision);
+        resolve(decision);
+      };
+    });
+    attachAbort(existing);
+    return shared;
+  }
+  const id = randomUUID();
+  const now = Date.now();
+  let settle!: (decision: ApprovalDecision) => void;
+  const record: HeldApprovalState = {
+    id,
+    toolName: input.toolName,
+    summary: describeApproval(input.toolName, input.args),
+    owner: input.owner,
+    threadId: input.threadId,
+    digest,
+    createdAt: now,
+    expiresAt: now + HELD_APPROVAL_TTL_MS,
+    settle: (decision) => settle(decision),
+  };
+  const done = new Promise<ApprovalDecision>((resolve) => {
+    settle = (decision) => {
+      clearTimeout(timer);
+      heldApprovals.delete(id);
+      resolve(decision);
+    };
+  });
+  const timer = setTimeout(() => record.settle("expired"), HELD_APPROVAL_TTL_MS);
+  // A held approval must never keep the process alive on its own.
+  (timer as unknown as { unref?: () => void }).unref?.();
+  heldApprovals.set(id, record);
+  attachAbort(record);
+  return done;
+}
+
+/** Live held approvals for an owner+thread, for the card UI to poll. */
+export function listHeldApprovals(owner: string, threadId: string): HeldApproval[] {
+  return liveHeld()
+    .filter((record) => record.owner === owner && record.threadId === threadId)
+    .map(({ settle: _settle, ...publicPart }) => publicPart);
+}
+
+/**
+ * Decide a held approval from the card UI. Only the owning owner may decide;
+ * the decision settles every waiter on the held call. Returns false when the
+ * id is unknown, expired, or belongs to someone else.
+ */
+export function decideHeldApproval(
+  owner: string,
+  id: string,
+  decision: Extract<ApprovalDecision, "approved" | "denied">,
+): boolean {
+  const record = liveHeld().find((held) => held.id === id);
+  if (!record || record.owner !== owner) return false;
+  record.settle(decision);
+  return true;
+}
+
+/** Truncated, secret-redacted one-liner describing a held call for its card. */
+export function describeApproval(toolName: string, args: unknown): string {
+  const bag =
+    args !== null && typeof args === "object" ? (args as Record<string, unknown>) : {};
+  const text = (value: unknown): string | undefined =>
+    typeof value === "string" ? value : undefined;
+  const trunc = (value: string, max: number): string =>
+    value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+  switch (toolName) {
+    case "browser_login": {
+      const label = text(bag.label);
+      return label
+        ? `Sign in with your saved login "${trunc(label, 60)}"`
+        : "Sign in with a saved login";
+    }
+    case "email_send": {
+      const to = Array.isArray(bag.to)
+        ? bag.to.filter((v): v is string => typeof v === "string").join(", ")
+        : text(bag.to);
+      const subject = text(bag.subject);
+      return `Send email${to ? ` to ${trunc(to, 80)}` : ""}${subject ? ` — "${trunc(subject, 80)}"` : ""}`;
+    }
+    case "browser_input": {
+      // Never echo typed text: it may be a password or verification code.
+      const kind = text(bag.type);
+      if (kind === "key" && text(bag.key) === "Enter") return "Submit the form (press Enter)";
+      if (kind === "key") return `Press the ${text(bag.key) ?? "key"} key in the browser`;
+      if (kind === "type") return "Type into the browser page";
+      if (kind === "click") return "Click in the browser page";
+      if (kind === "select")
+        return `Choose "${trunc(text(bag.option) ?? "", 60)}" from a dropdown`;
+      if (kind === "scroll") return "Scroll the browser page";
+      return "Interact with the browser page";
+    }
+    case "run_computer_command": {
+      const command = text(bag.command) ?? text(bag.cmd);
+      return command
+        ? `Run on your computer: ${trunc(command, 120)}`
+        : "Run a command on your computer";
+    }
+    default: {
+      const names = Object.keys(bag);
+      return names.length > 0
+        ? `${toolName} (${names.map((name) => trunc(name, 40)).join(", ")})`
+        : toolName;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Stage 2 classification sets. Exact tool names only.
 // ---------------------------------------------------------------------------
 
@@ -815,6 +1006,21 @@ export interface PolicyBase {
    */
   resolveBrowserPageUrl?: (args: unknown) => Promise<string | undefined>;
   approvalToken?: string;
+  /**
+   * Chat-only: pause the tool call and wait for the owner's in-chat approval
+   * card decision instead of refusing with { error }. The registry holds the
+   * exact proposed call; on "approved" the held call runs with its original
+   * arguments (the model never re-issues it, so approvals cannot drift).
+   * Resolves "denied" when the owner taps Deny, "expired" on timeout/abort.
+   * Undefined on the worker path, which keeps the old { error } refusal.
+   */
+  awaitChatApproval?: (input: {
+    toolName: string;
+    args: unknown;
+    owner: string;
+    threadId: string;
+    signal?: AbortSignal;
+  }) => Promise<ApprovalDecision>;
   hooks?: ToolCallHook[];
   signal?: AbortSignal;
   loopClosed?: boolean;
@@ -903,6 +1109,26 @@ export function withPolicy(tool: ToolDefinition, base: PolicyBase): ToolDefiniti
         // A failed approval check (e.g. 409 on a tampered token) surfaces as
         // the existing { error } shape, like the other wrappers.
         return { error: error instanceof Error ? error.message : "Policy check failed" };
+      }
+      if (verdict.kind === "requireApproval" && base.awaitChatApproval) {
+        // In-chat approval card: hold the exact proposed call and wait for
+        // the owner's decision. On approval the HELD call runs with its
+        // original arguments — the model never re-issues it, so the approval
+        // cannot drift onto a reworded variant.
+        const decision = await base.awaitChatApproval({
+          toolName: tool.name,
+          args: parsed,
+          owner: base.owner,
+          threadId: base.threadId ?? "",
+          signal: base.signal,
+        });
+        if (decision === "approved") return inner(rawArgs);
+        return {
+          error:
+            decision === "denied"
+              ? "The owner denied this action in the chat. Do not retry it; explain briefly and move on."
+              : "The approval request expired before the owner decided, so the action was not run. You may describe it again; a new approval card will appear.",
+        };
       }
       if (verdict.kind !== "allow") return { error: policyError(tool.name, verdict) };
       return inner(rawArgs);

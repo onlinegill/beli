@@ -274,11 +274,12 @@ export function ChatSidebar({ onClose }: { onClose?: () => void }) {
                   <Pressable
                     onPress={() => {
                       const name = thread.name || "this side chat";
-                      const ok =
-                        typeof window !== "undefined" && window.confirm
-                          ? window.confirm('Delete "' + name + '"? This cannot be undone.')
-                          : false;
-                      if (typeof window !== "undefined" && window.confirm) {
+                      const useConfirm =
+                        typeof window !== "undefined" && typeof window.confirm === "function";
+                      const ok = useConfirm
+                        ? window.confirm('Delete "' + name + '"? This cannot be undone.')
+                        : false;
+                      if (useConfirm) {
                         if (ok) { removeThread(thread.id); onClose?.(); }
                       } else {
                         Alert.alert("Delete chat?", 'Delete "' + name + '"? This cannot be undone.', [

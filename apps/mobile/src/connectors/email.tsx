@@ -122,7 +122,7 @@ export function EmailSection({ api }: { api: ConnectorsApi }) {
           <Empty
             icon={Mail}
             title="No email accounts"
-            detail="Connect an IMAP account for reading and an SMTP server for sending through the reviewed action flow. Quick setup prefills Gmail and Titan."
+            detail="Connect an IMAP account for reading and an SMTP server for sending through the reviewed action flow. Quick setup prefills Gmail, Microsoft 365, and Mailcow."
           >
             <Button primary icon={Plus} onPress={() => setShowAdd(true)}>
               Add account
@@ -334,16 +334,29 @@ const PROVIDER_PRESETS = [
     },
   },
   {
-    id: "titan",
-    label: "Titan",
-    hint: "Titan Mail: your full email address as the username; IMAP imap.titan.email and SMTP smtp.titan.email are prefilled below.",
+    id: "microsoft365",
+    label: "Microsoft 365",
+    hint: "Microsoft 365 / Office 365: IMAP outlook.office365.com and SMTP smtp.office365.com are prefilled below. You may need an app password, or ask your admin to enable SMTP AUTH for the mailbox.",
     values: {
-      imapHost: "imap.titan.email",
+      imapHost: "outlook.office365.com",
       imapPort: 993,
       imapSecure: true,
-      smtpHost: "smtp.titan.email",
-      smtpPort: 465,
-      smtpSecure: true,
+      smtpHost: "smtp.office365.com",
+      smtpPort: 587,
+      smtpSecure: false,
+    },
+  },
+  {
+    id: "mailcow",
+    label: "Mailcow",
+    hint: "Mailcow: IMAP and SMTP hosts are prefilled for mail.prosperanetworks.com — change the host if your Mailcow lives on a different domain. Username is your full email address; use a Mailcow app password, not the login password.",
+    values: {
+      imapHost: "mail.prosperanetworks.com",
+      imapPort: 993,
+      imapSecure: true,
+      smtpHost: "mail.prosperanetworks.com",
+      smtpPort: 587,
+      smtpSecure: false,
     },
   },
 ] as const;
@@ -380,7 +393,7 @@ function EmailForm({
     setSmtpHost(preset.values.smtpHost);
     setSmtpPort(String(preset.values.smtpPort));
     setSmtpSecure(preset.values.smtpSecure);
-    // Gmail and Titan both authenticate with the full email address.
+    // Gmail, Microsoft 365, and Mailcow all authenticate with the full email address.
     if (emailAddress.trim() && !username.trim()) setUsername(emailAddress.trim());
     setPresetId(preset.id);
   }

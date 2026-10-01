@@ -1,4 +1,5 @@
 import "../config.ts";
+import { MODEL_MAX_RETRIES } from "../config.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { EventType, type RunAgentInput } from "@ag-ui/core";
 import { BuiltInAgent, defineTool } from "@copilotkit/runtime/v2";
@@ -572,7 +573,7 @@ export async function executeModelTask(
   const agent = new BuiltInAgent({
     model: config.model,
     maxSteps: 16,
-    maxRetries: 0,
+    maxRetries: MODEL_MAX_RETRIES,
     tools: allTools,
     prompt: workerPrompt,
   });

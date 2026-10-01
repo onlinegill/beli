@@ -111,11 +111,11 @@ test("dashboard typing action \"type\" is translated to the worker's \"text\" ac
   });
   await db.put("owner", "browsers", savedSession);
   // This is exactly what the dashboard agent's browser_input tool sends.
-  const result = await service.input("owner", sessionId, { type: "type", text: "Test User" });
+  const result = await service.input("owner", sessionId, { type: "type", text: "Paul Gill" });
   assert.equal(result.title, updated.title);
   assert.deepEqual(calls.at(-1), {
     path: `/sessions/${sessionId}/input`,
-    body: { type: "text", text: "Test User" },
+    body: { type: "text", text: "Paul Gill" },
   });
 });
 

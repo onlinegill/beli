@@ -775,8 +775,8 @@ export class EmailService {
             cc: input.cc,
             bcc: input.bcc,
             subject: input.subject,
-            // Work-email identity: mail from work@example.com is
-            // signed with the configured work signature. Enforced here so every
+            // Work-email identity: mail from support@prosperanetworks.com is
+            // signed "Paul Gill", never "Sukhpal". Enforced here so every
             // sender — the agent's email.send tool, the reviewed action flow,
             // calendar invites — carries the right signature.
             text: applyWorkSignature(input.body, account.emailAddress),

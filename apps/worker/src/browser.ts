@@ -89,6 +89,8 @@ export interface Session {
   url: string;
   status: "active" | "closed" | "error";
   updatedAt: string;
+  /** Last time the session was used; set on close for auto-eviction. */
+  lastUsedAt?: string;
   /** Set when the last navigation was preempted by a file download. */
   download?: PdfDownload | null;
 }
@@ -153,9 +155,8 @@ export async function createBrowserManager(options: {
   // Auto-evict closed sessions that haven't been used in 7 days to prevent profile accumulation.
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
   for (const [id, session] of [...sessions.entries()]) {
-    if (session.status === "closed") {
-      const lastUsed = session.lastUsedAt ? new Date(session.lastUsedAt).getTime() : 0;
-      if (Date.now() - lastUsed > SEVEN_DAYS_MS) {
+    if (session.status === "closed" && session.lastUsedAt) {
+      if (Date.now() - new Date(session.lastUsedAt).getTime() > SEVEN_DAYS_MS) {
         sessions.delete(id);
         try { await rm(join(dataDir, id), { recursive: true, force: true }); } catch { /* ignore */ }
       }

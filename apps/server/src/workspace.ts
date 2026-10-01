@@ -132,7 +132,7 @@ export class WorkspaceService {
       id: string;
       label: string;
       address: string;
-      kind: "google" | "titan" | "imap";
+      kind: "google" | "imap";
       designation?: "work" | "personal";
     }>
   > {
@@ -140,7 +140,7 @@ export class WorkspaceService {
       id: string;
       label: string;
       address: string;
-      kind: "google" | "titan" | "imap";
+      kind: "google" | "imap";
       designation?: "work" | "personal";
     }> = [];
     const google = await this.connection(owner);
@@ -157,7 +157,7 @@ export class WorkspaceService {
         id: stored.id,
         label: stored.label,
         address: stored.emailAddress,
-        kind: stored.imap.host.toLowerCase().includes("titan") ? "titan" : "imap",
+        kind: "imap",
         ...(designation ? { designation } : {}),
       });
     }
@@ -824,8 +824,8 @@ export class WorkspaceService {
       const receipt = await google.sendEmail(
         {
           ...input.data,
-          // Work-email identity: mail from work@example.com is
-          // signed with the configured work signature. Enforced here so the Gmail
+          // Work-email identity: mail from support@prosperanetworks.com is
+          // signed "Paul Gill", never "Sukhpal". Enforced here so the Gmail
           // path carries the same signature as the IMAP path.
           body: applyWorkSignature(input.data.body, tokens.account),
         },

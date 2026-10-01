@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { test } from "node:test";
-import { assertApiDeploymentConfig, readConfig, type Config } from "../apps/server/src/config.ts";
+import {
+  assertApiDeploymentConfig,
+  browserWorkerUrl,
+  readConfig,
+  type Config,
+} from "../apps/server/src/config.ts";
 import {
   MIGRATED_SERVER_SECRETS,
   loadServerSecrets,
@@ -240,4 +245,12 @@ test("readConfig() live-mode gates pass with vault-materialized secrets", async 
   } finally {
     restoreEnv(snap);
   }
+});
+
+test("browser worker URL keeps an existing scheme and adds http to host:port", () => {
+  assert.equal(browserWorkerUrl(undefined), undefined);
+  assert.equal(browserWorkerUrl("  "), undefined);
+  assert.equal(browserWorkerUrl("http://127.0.0.1:8790"), "http://127.0.0.1:8790");
+  assert.equal(browserWorkerUrl("https://browser.internal:8790"), "https://browser.internal:8790");
+  assert.equal(browserWorkerUrl("openmuse-browser-h4fx:8790"), "http://openmuse-browser-h4fx:8790");
 });

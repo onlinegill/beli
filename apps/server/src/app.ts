@@ -21,6 +21,7 @@ import type { WhatsAppService } from "./connectors/whatsapp/service.ts";
 import type { Store } from "./db.ts";
 import { agentRoutes } from "./engine/routes.ts";
 import { AgentService } from "./engine/service.ts";
+import { decideHeldApproval, listHeldApprovals } from "./engine/tool-policy.ts";
 import { AppError } from "./errors.ts";
 import {
   assertNotLastEnabledAdmin,
@@ -588,6 +589,24 @@ export async function createApp(
     const messages = z.array(z.unknown()).max(1000).parse(body.messages);
     for (const message of messages) MessageSchema.parse(message);
     await db.put(c.get("owner"), "conversations", { id: key, messages });
+    return c.json({ ok: true });
+  });
+  // In-chat approval cards: a chat tool call that needs owner approval is
+  // held server-side and the dashboard polls this list to render Approve/Deny
+  // cards. Deciding replays (or drops) the exact held call; the model never
+  // re-issues it, so approvals cannot drift onto changed arguments.
+  app.get("/api/chat/approvals", async (c) => {
+    const threadId = c.req.query("threadId") ?? "";
+    return c.json({ approvals: listHeldApprovals(c.get("owner"), threadId) });
+  });
+  app.post("/api/chat/approvals/:id/approve", async (c) => {
+    if (!decideHeldApproval(c.get("owner"), c.req.param("id"), "approved"))
+      throw new AppError("Approval not found, expired, or already decided", 404);
+    return c.json({ ok: true });
+  });
+  app.post("/api/chat/approvals/:id/deny", async (c) => {
+    if (!decideHeldApproval(c.get("owner"), c.req.param("id"), "denied"))
+      throw new AppError("Approval not found, expired, or already decided", 404);
     return c.json({ ok: true });
   });
   app.delete("/api/chat/history", async (c) => {

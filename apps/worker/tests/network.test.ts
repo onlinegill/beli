@@ -3,7 +3,7 @@ import test from "node:test";
 import { isTrustedDomain, type Resolver, validatePublicUrl } from "../src/network.ts";
 
 const privateResolver: Resolver = async (hostname) => {
-  if (hostname === "mysite.example") return [{ address: "192.0.2.10", family: 4 }];
+  if (hostname === "mysite.example") return [{ address: "10.10.0.10", family: 4 }];
   if (hostname === "public.example") return [{ address: "93.184.216.34", family: 4 }];
   return [];
 };
@@ -19,11 +19,11 @@ test("trusted domains may resolve to private IPs", async () => {
   process.env.BROWSER_TRUSTED_DOMAINS = "mysite.example";
   try {
     const result = await validatePublicUrl("https://mysite.example", privateResolver);
-    assert.equal(result.address, "192.0.2.10");
+    assert.equal(result.address, "10.10.0.10");
     const sub = await validatePublicUrl("https://www.mysite.example", async () => [
-      { address: "192.0.2.10", family: 4 },
+      { address: "10.10.0.10", family: 4 },
     ]);
-    assert.equal(sub.address, "192.0.2.10");
+    assert.equal(sub.address, "10.10.0.10");
   } finally {
     delete process.env.BROWSER_TRUSTED_DOMAINS;
   }

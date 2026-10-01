@@ -358,30 +358,30 @@ test("mailbox schemas require the right identifier per backend", () => {
 // Work signature
 // ---------------------------------------------------------------------------
 
-test("work email is signed Test User, never Testy", () => {
-  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nTest User");
-  // An existing Test User sign-off is kept as-is.
+test("work email is signed Paul Gill, never Sukhpal", () => {
+  assert.equal(applyWorkSignature("Hello", "support@prosperanetworks.com"), "Hello\n\nPaul Gill");
+  // An existing Paul Gill sign-off is kept as-is.
   assert.equal(
-    applyWorkSignature("Hello\n\nTest User", "work@example.com"),
-    "Hello\n\nTest User",
+    applyWorkSignature("Hello\n\nPaul Gill", "support@prosperanetworks.com"),
+    "Hello\n\nPaul Gill",
   );
-  // A trailing Testy sign-off is corrected, not duplicated.
+  // A trailing Sukhpal sign-off is corrected, not duplicated.
   assert.equal(
-    applyWorkSignature("Hello\n\nTesty", "work@example.com"),
-    "Hello\n\nTest User",
+    applyWorkSignature("Hello\n\nSukhpal", "support@prosperanetworks.com"),
+    "Hello\n\nPaul Gill",
   );
   assert.equal(
-    applyWorkSignature("Hello\n\nTesty Gill", "work@example.com"),
-    "Hello\n\nTest User",
+    applyWorkSignature("Hello\n\nSukhpal Gill", "support@prosperanetworks.com"),
+    "Hello\n\nPaul Gill",
   );
   // Mentions elsewhere in the body are untouched.
   assert.equal(
-    applyWorkSignature("Testy will join us\n\nRegards", "work@example.com"),
-    "Testy will join us\n\nRegards\n\nTest User",
+    applyWorkSignature("Sukhpal will join us\n\nRegards", "support@prosperanetworks.com"),
+    "Sukhpal will join us\n\nRegards\n\nPaul Gill",
   );
   // Non-work accounts are untouched.
-  assert.equal(applyWorkSignature("Hello", "user@example.com"), "Hello");
-  assert.equal(applyWorkSignature("Hello\n\nTesty", "user@example.com"), "Hello\n\nTesty");
+  assert.equal(applyWorkSignature("Hello", "gillonl@gmail.com"), "Hello");
+  assert.equal(applyWorkSignature("Hello\n\nSukhpal", "gillonl@gmail.com"), "Hello\n\nSukhpal");
 });
 
 // ---------------------------------------------------------------------------
@@ -488,10 +488,10 @@ test("EmailService.send rejects a CR/LF subject before touching the transport", 
   assert.equal(sent.length, 0);
 });
 
-test("EmailService.send signs the work account Test User", async () => {
+test("EmailService.send signs the work account Paul Gill", async () => {
   sent.length = 0;
   const email = new EmailService(db, config, fakeFactories);
-  const account = await createImapAccount(email, "work@example.com");
+  const account = await createImapAccount(email, "support@prosperanetworks.com");
   await email.send(OWNER, account.id, {
     to: ["a@example.com"],
     cc: [],
@@ -500,7 +500,7 @@ test("EmailService.send signs the work account Test User", async () => {
     body: "Just checking in",
   });
   assert.equal(sent.length, 1);
-  assert.ok(sent[0].text.endsWith("\n\nTest User"));
+  assert.ok(sent[0].text.endsWith("\n\nPaul Gill"));
 });
 
 // ---------------------------------------------------------------------------
@@ -566,7 +566,7 @@ test("email.send handler sends through the exact IMAP account with the work sign
   sent.length = 0;
   const email = new EmailService(db, config, fakeFactories);
   const workspace = workspaceWithEmail(email);
-  const account = await createImapAccount(email, "work@example.com");
+  const account = await createImapAccount(email, "support@prosperanetworks.com");
   const deps = depsFor(workspace);
   const send = findTool(deps, "email_send");
   const result = (await send({
@@ -577,10 +577,10 @@ test("email.send handler sends through the exact IMAP account with the work sign
   })) as { sent: boolean; account: string };
   assert.equal(result.sent, true);
   assert.equal(result.account, account.id);
-  // The fake transport recorded exactly one send, signed Test User.
+  // The fake transport recorded exactly one send, signed Paul Gill.
   assert.equal(sent.length, 1);
   assert.equal(sent[0].subject, "Hi");
-  assert.ok(sent[0].text.endsWith("\n\nTest User"));
+  assert.ok(sent[0].text.endsWith("\n\nPaul Gill"));
 });
 
 test("resolveCalendarAttendees fails closed on unreadable events", async () => {

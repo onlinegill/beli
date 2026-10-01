@@ -80,7 +80,7 @@ function CalendarAccountsCard({ isAdmin }: { isAdmin: boolean }) {
     emailAddress: "",
     username: "",
     password: "",
-    host: "dav.titan.email",
+    host: "dav.example.com",
     port: "443",
     path: "/",
     secure: true,
@@ -277,7 +277,7 @@ function CalendarAccountsCard({ isAdmin }: { isAdmin: boolean }) {
                 label="Server host"
                 value={form.host}
                 onChangeText={(value) => setForm((f) => ({ ...f, host: value }))}
-                placeholder="dav.titan.email"
+                placeholder="dav.example.com"
                 autoCapitalize="none"
                 autoCorrect={false}
               />

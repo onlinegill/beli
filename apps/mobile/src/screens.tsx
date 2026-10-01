@@ -1337,7 +1337,7 @@ export function CalendarScreen() {
           {selected?.name || "Your calendar"} · {zone}. Events show their own time zone.
         </Text>
         <ErrorNotice error={error} />
-        {error && (
+        {!!error && (
           <Button small onPress={() => setRetry(retry + 1)}>
             Try again
           </Button>
@@ -1454,7 +1454,7 @@ export function BrowserScreen() {
                 <Chip tint={b.status === "active" ? colors.green : colors.canvas}>{b.status}</Chip>
                 <ArrowUpRight size={17} color={colors.muted} />
               </View>
-              {b.previewUrl && (
+              {!!b.previewUrl && (
                 <Image
                   source={{ uri: api.url(b.previewUrl) }}
                   resizeMode="cover"

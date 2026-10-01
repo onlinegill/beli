@@ -390,23 +390,23 @@ test("messages route returns a paginated page object and never the password", as
   assert.equal(bad.status, 422);
 });
 
-test("send signs work-account mail as Test User and leaves other accounts alone", async () => {
-  assert.equal(applyWorkSignature("Hello", "work@example.com"), "Hello\n\nTest User");
+test("send signs work-account mail as Paul Gill and leaves other accounts alone", async () => {
+  assert.equal(applyWorkSignature("Hello", "support@prosperanetworks.com"), "Hello\n\nPaul Gill");
   assert.equal(
-    applyWorkSignature("Hello", "WORK@example.com"),
-    "Hello\n\nTest User",
+    applyWorkSignature("Hello", "Support@ProsperaNetworks.com"),
+    "Hello\n\nPaul Gill",
   );
-  assert.equal(applyWorkSignature("Hello", "user@example.com"), "Hello");
+  assert.equal(applyWorkSignature("Hello", "gillonl@gmail.com"), "Hello");
   assert.equal(
-    applyWorkSignature("Hello\n\nTest User", "work@example.com"),
-    "Hello\n\nTest User",
+    applyWorkSignature("Hello\n\nPaul Gill", "support@prosperanetworks.com"),
+    "Hello\n\nPaul Gill",
   );
 
   const email = new EmailService(db, config, fakeFactories);
   const work = await email.createAccount("owner-10", {
     ...accountInput,
     label: "Work Titan",
-    emailAddress: "work@example.com",
+    emailAddress: "support@prosperanetworks.com",
   });
   await email.send("owner-10", work.id, {
     to: ["sam@example.com"],
@@ -415,12 +415,12 @@ test("send signs work-account mail as Test User and leaves other accounts alone"
     subject: "Hi",
     body: "Hello there",
   });
-  assert.ok(sent.at(-1)?.text.endsWith("\n\nTest User"));
+  assert.ok(sent.at(-1)?.text.endsWith("\n\nPaul Gill"));
 
   const personal = await email.createAccount("owner-11", {
     ...accountInput,
     label: "Personal",
-    emailAddress: "user@example.com",
+    emailAddress: "gillonl@gmail.com",
   });
   await email.send("owner-11", personal.id, {
     to: ["sam@example.com"],

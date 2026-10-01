@@ -82,7 +82,7 @@ export function AgentStatus() {
   return (
     <View style={{ gap: 8 }}>
       <ErrorNotice error={error ? `Agent updates unavailable. ${error}` : ""} />
-      {error && (
+      {!!error && (
         <Button small onPress={() => void refresh().catch(() => {})}>
           Reconnect agent
         </Button>
@@ -529,7 +529,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               ))}
             </Card>
           )}
-          {task.result && (
+          {!!task.result && (
             <Card style={{ backgroundColor: colors.green }}>
               <Text selectable style={s.text}>
                 {resultSummary(task.result)}
@@ -1042,7 +1042,7 @@ export function IdeasScreen() {
           <Card key={idea.id} style={{ gap: 7 }}>
             <Text style={s.heading}>{idea.title}</Text>
             <Chip tint={colors.green}>Started</Chip>
-            {idea.taskId && <TaskLink taskId={idea.taskId} />}
+            {!!idea.taskId && <TaskLink taskId={idea.taskId} />}
           </Card>
         ))}
     </View>
@@ -1608,7 +1608,7 @@ function MonitorCard({ monitor, onOpenTask }: { monitor: Monitor; onOpenTask?: (
         Last check: {stamp(monitor.lastCheckedAt)}
         {monitor.status === "active" ? `\nNext check: ${stamp(monitor.nextCheckAt)}` : ""}
       </Text>
-      {monitor.lastValue && (
+      {!!monitor.lastValue && (
         <Text selectable numberOfLines={5} style={s.muted}>
           {monitor.lastValue}
         </Text>

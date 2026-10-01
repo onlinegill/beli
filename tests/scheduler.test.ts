@@ -128,7 +128,7 @@ test("gate: read-only ssh_exec to an ungranted target is denied", async () => {
 test("gate: read-only check within the grant is allowed autonomously", async () => {
   const verdict = await gate("ssh_exec", { target: "pve", command: "uptime" }, runContext("run-1"));
   assert.equal(verdict?.kind, "allow");
-  const ha = await gate("ha_check_updates", { instance: "primary" }, runContext("run-1"));
+  const ha = await gate("ha_check_updates", { instance: "home" }, runContext("run-1"));
   assert.equal(ha?.kind, "allow");
 });
 
@@ -165,7 +165,7 @@ test("gate: ha_apply_update without a backup is denied", async () => {
   clearRunState(runId);
   const verdict = await gate(
     "ha_apply_update",
-    { instance: "primary", entityId: "update.home_assistant_core_update" },
+    { instance: "home", entityId: "update.home_assistant_core_update" },
     runContext(runId),
   );
   assert.equal(verdict?.kind, "deny");
